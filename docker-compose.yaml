@@ -6,8 +6,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./config.env
-    ports:         #for debug
-      - '3306:3306'
+#    ports:         #for debug
+#      - '3306:3306'
     environment:
       MYSQL_DATABASE: 'urls'
       MYSQL_RANDOM_ROOT_PASSWORD: yes
@@ -21,8 +21,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./config.env
-    ports:         #for debug
-      - '6379:6379'
+#    ports:         #for debug
+#      - '6379:6379'
     networks:
       default:
         ipv4_address: 172.20.0.3
