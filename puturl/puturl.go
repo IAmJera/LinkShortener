@@ -3,11 +3,10 @@ package puturl
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"go.uber.org/zap"
-	"short_url/initial"
-	"short_url/sup"
+	"link-shortener/general"
+	"link-shortener/initial"
+	"log"
 )
 
 // WriteToDB writes the entry to the database if it doesn't already exist. Otherwise, return nil
@@ -15,7 +14,6 @@ func WriteToDB(base *initial.General, urls *initial.URLs) error {
 	if exist, err := isExist(base, urls); err != nil {
 		return err
 	} else if exist {
-		base.Log.Infof("record already exist")
 		return nil
 	}
 	err := writeRecord(base, urls)
@@ -26,13 +24,14 @@ func isExist(base *initial.General, urls *initial.URLs) (bool, error) {
 	longURL, err := base.Redis.Get(base.Context, urls.Short).Result()
 	if err != nil {
 		if err.Error() != "redis: nil" {
+			log.Printf("isExist: %s", err)
 			return false, err
 		}
 		return isExistInDB(base, urls)
 
 	} else if isRecurrent(urls, &longURL) {
-		base.Log.Infof("recurrent record")
 		if err = recurrentCache(base, urls); err != nil {
+			log.Printf("isExist:recurrentCache: %s", err)
 			return false, err
 		}
 		return false, nil
@@ -52,7 +51,6 @@ func isExistInDB(base *initial.General, urls *initial.URLs) (bool, error) {
 	}
 
 	if isRecurrent(urls, &longURL) {
-		base.Log.Infof("recurrent record")
 		if err = recurrentDB(base, urls); err != nil {
 			return false, err
 		}
@@ -60,7 +58,7 @@ func isExistInDB(base *initial.General, urls *initial.URLs) (bool, error) {
 	}
 
 	urls.Long = longURL
-	if err = sup.Cache(base, urls); err != nil {
+	if err = general.Cache(base, urls); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -69,19 +67,22 @@ func isExistInDB(base *initial.General, urls *initial.URLs) (bool, error) {
 func getFromDB(base *initial.General, urls *initial.URLs) (string, error) {
 	rows, err := base.MySQL.Query("SELECT * FROM url WHERE shortURL = ?", urls.Short)
 	if err != nil {
+		log.Printf("getFromDB:Query: %s", err)
 		return "", err
 	}
-	defer closeRow(rows, base.Log)
+	defer general.CloseFile(rows)
 
 	var short, long string
 	if rows.Next() {
-		if err := rows.Scan(&short, &long); err != nil {
+		if err = rows.Scan(&short, &long); err != nil {
+			log.Printf("getFromDB:Scan: %s", err)
 			return "", err
 		}
 		return long, nil
 	}
 
 	if err = rows.Err(); err != nil {
+		log.Printf("getFromDB:Err: %s", err)
 		return "", err
 	}
 	return "", fmt.Errorf("not exist")
@@ -89,37 +90,38 @@ func getFromDB(base *initial.General, urls *initial.URLs) (string, error) {
 
 func recurrentDB(base *initial.General, urls *initial.URLs) error {
 	for {
-		base.Log.Debugf("salting hash")
-		urls.Short = sup.Hash(urls.Short, "salt")
+		urls.Short = general.Hash(urls.Short, "salt")
 		rows, err := base.MySQL.Query("SELECT * FROM url WHERE shortURL = ?", urls.Short)
 		if err != nil {
+			log.Printf("recurrentDB:Query: %s", err)
 			return err
 		}
 
 		var short, long string
 		if rows.Next() {
-			if err := rows.Scan(&short, &long); err != nil {
-				closeRow(rows, base.Log)
+			if err = rows.Scan(&short, &long); err != nil {
+				log.Printf("recurrentDB:Next: %s", err)
+				general.CloseFile(rows)
 				return err
 			}
 		}
 
 		if short != urls.Short {
-			closeRow(rows, base.Log)
+			general.CloseFile(rows)
 			return nil
 		}
-		closeRow(rows, base.Log)
+		general.CloseFile(rows)
 	}
 }
 
 func recurrentCache(base *initial.General, urls *initial.URLs) error {
 	for {
-		base.Log.Debugf("salting hash")
-		urls.Short = sup.Hash(urls.Short, "salt")
+		urls.Short = general.Hash(urls.Short, "salt")
 		if _, err := base.Redis.Get(base.Context, urls.Short).Result(); err != nil {
 			if err.Error() == "redis: nil" {
 				return nil
 			}
+			log.Printf("recurrentCache:Get: %s", err)
 			return err
 		}
 	}
@@ -135,18 +137,10 @@ func isRecurrent(urls *initial.URLs, longURL *string) bool {
 func writeRecord(base *initial.General, urls *initial.URLs) error {
 	query := "INSERT INTO `url` (`shorturl`, `longurl`) VALUES (?, ?)"
 	if _, err := base.MySQL.ExecContext(context.Background(), query, urls.Short, urls.Long); err != nil {
+		log.Printf("writeRecord:Query: %s", err)
 		return fmt.Errorf("impossible insert record: %s", err)
 	}
 
-	base.Log.Infof("record added to database")
-	err := sup.Cache(base, urls)
+	err := general.Cache(base, urls)
 	return err
-}
-
-func closeRow(rows *sql.Rows, l *zap.SugaredLogger) {
-	err := rows.Close()
-	if err != nil {
-		l.Errorf("error occurred: %s", err)
-		return
-	}
 }

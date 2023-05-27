@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"github.com/go-redis/redis/v8"
 	"github.com/go-sql-driver/mysql"
-	"go.uber.org/zap"
+	"log"
 	"net/url"
 	"os"
 	"time"
@@ -14,7 +14,6 @@ import (
 
 // General contains the most commonly used service instances
 type General struct {
-	Log     *zap.SugaredLogger
 	Context context.Context
 	MySQL   *sql.DB
 	Redis   *redis.Client
@@ -29,24 +28,25 @@ type URLs struct {
 // InitAll init all services and fill base struct
 func InitAll(base *General) error {
 	var err error
-	if base.Context, base.Redis, err = initRedis(base.Log); err != nil {
+	if base.Context, base.Redis, err = initRedis(); err != nil {
+		log.Printf("initRedis:Ping: %s", err)
 		return err
 	}
-	if base.MySQL, err = initMySQL(base.Log); err != nil {
+	if base.MySQL, err = initMySQL(); err != nil {
 		return err
 	}
-	if err := prepareDB(base); err != nil {
+	if err = prepareDB(base); err != nil {
+		log.Printf("prepareDB: %s", err)
 		return err
 	}
 
-	base.Log.Infof("All services connected")
 	return nil
 }
 
-func initRedis(l *zap.SugaredLogger) (context.Context, *redis.Client, error) {
+func initRedis() (context.Context, *redis.Client, error) {
 	var ctx = context.Background()
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     os.Getenv("REDIS_ADDRESS") + ":" + os.Getenv("REDIS_PORT"),
+		Addr:     os.Getenv("REDIS_ADDRESS"),
 		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
@@ -54,32 +54,31 @@ func initRedis(l *zap.SugaredLogger) (context.Context, *redis.Client, error) {
 	if _, err := rdb.Ping(ctx).Result(); err != nil {
 		return nil, nil, err
 	}
-	l.Debugf("ping with Redis successful")
 	return ctx, rdb, nil
 }
 
-func initMySQL(l *zap.SugaredLogger) (*sql.DB, error) {
+func initMySQL() (*sql.DB, error) {
 	auth := mysql.Config{
 		User:                 os.Getenv("MYSQL_USER"),
 		Passwd:               os.Getenv("MYSQL_PASSWORD"),
 		Net:                  "tcp",
-		Addr:                 os.Getenv("MYSQL_ADDRESS") + ":" + os.Getenv("MYSQL_PORT"),
+		Addr:                 os.Getenv("MYSQL_ADDRESS"),
 		DBName:               os.Getenv("MYSQL_DB"),
 		AllowNativePasswords: true,
 	}
 	db, err := sql.Open("mysql", auth.FormatDSN())
 	if err != nil {
+		log.Printf("initMySQL:Open: %s", err)
 		return nil, err
 	}
-	l.Debugf("MySQL connected successful")
 	db.SetConnMaxLifetime(time.Minute * 3)
 	db.SetMaxOpenConns(10)
 	db.SetMaxIdleConns(10)
 
-	if err := db.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
+		log.Printf("initMySQL:Ping: %s", err)
 		return nil, err
 	}
-	l.Debugf("ping with MySQL successful")
 	return db, err
 }
 
@@ -87,11 +86,10 @@ func prepareDB(base *General) error {
 	if exist, err := tableExist(base); err != nil {
 		return err
 	} else if exist {
-		base.Log.Debugf("table already exist")
 		return nil
 	}
 
-	query := "CREATE TABLE url ( shorturl varchar(10), longurl varchar(255));"
+	query := "CREATE TABLE url ( shorturl varchar(10), longurl text);"
 	if _, err := base.MySQL.ExecContext(context.Background(), query); err != nil {
 		if err.Error() != "Error 1050 (42S01): Table 'url' already exists" {
 			return err
@@ -105,6 +103,7 @@ func tableExist(base *General) (bool, error) {
 		if err.Error() == "Error 1146 (42S02): Table 'urls.url' doesn't exist" {
 			return false, nil
 		}
+		log.Printf("tableExist: %s", err)
 		return false, err
 	}
 	return true, nil
