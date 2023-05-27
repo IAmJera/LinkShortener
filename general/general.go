@@ -17,7 +17,7 @@ type Closer interface {
 
 func CloseFile(c Closer) {
 	if err := c.Close; err != nil {
-		log.Printf("Error closing file")
+		log.Panicf("Error closing file")
 	}
 }
 

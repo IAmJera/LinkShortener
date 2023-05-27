@@ -3,6 +3,7 @@ package puturl
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"link-shortener/general"
 	"link-shortener/initial"
@@ -70,7 +71,11 @@ func getFromDB(base *initial.General, urls *initial.URLs) (string, error) {
 		log.Printf("getFromDB:Query: %s", err)
 		return "", err
 	}
-	defer general.CloseFile(rows)
+	defer func(rows *sql.Rows) {
+		if err = rows.Close(); err != nil {
+			log.Printf("error closing file")
+		}
+	}(rows)
 
 	var short, long string
 	if rows.Next() {
@@ -94,6 +99,7 @@ func recurrentDB(base *initial.General, urls *initial.URLs) error {
 		rows, err := base.MySQL.Query("SELECT * FROM url WHERE shortURL = ?", urls.Short)
 		if err != nil {
 			log.Printf("recurrentDB:Query: %s", err)
+			//general.CloseFile(rows)
 			return err
 		}
 

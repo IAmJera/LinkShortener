@@ -48,6 +48,7 @@ func writeRecord(base *initial.General) gin.HandlerFunc {
 			}
 		}
 		if urls.NotValid() {
+			log.Printf("writeRecoed:NotValid: %s", urls.Long)
 			c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "Not valid URL"})
 			return
 		}
