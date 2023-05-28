@@ -2,11 +2,11 @@
 package puturl
 
 import (
+	"LinkShortener/general"
+	"LinkShortener/initial"
 	"context"
 	"database/sql"
 	"fmt"
-	"link-shortener/general"
-	"link-shortener/initial"
 	"log"
 )
 

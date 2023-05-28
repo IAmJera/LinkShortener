@@ -2,11 +2,11 @@
 package main
 
 import (
+	"LinkShortener/general"
+	"LinkShortener/geturl"
+	"LinkShortener/initial"
+	"LinkShortener/puturl"
 	"github.com/gin-gonic/gin"
-	"link-shortener/general"
-	"link-shortener/geturl"
-	"link-shortener/initial"
-	"link-shortener/puturl"
 	"log"
 	"net/http"
 	"strings"

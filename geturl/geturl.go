@@ -2,10 +2,10 @@
 package geturl
 
 import (
+	"LinkShortener/general"
+	"LinkShortener/initial"
 	"database/sql"
 	"fmt"
-	"link-shortener/general"
-	"link-shortener/initial"
 	"log"
 )
 

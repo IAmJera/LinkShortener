@@ -1,4 +1,4 @@
-module link-shortener
+module LinkShortener
 
 go 1.20
 

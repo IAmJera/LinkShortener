@@ -2,9 +2,9 @@
 package general
 
 import (
+	"LinkShortener/initial"
 	"crypto/md5"
 	"encoding/hex"
-	"link-shortener/initial"
 	"log"
 	"os"
 	"strconv"
