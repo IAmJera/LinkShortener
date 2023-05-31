@@ -4,7 +4,6 @@ package geturl
 import (
 	"LinkShortener/general"
 	"LinkShortener/initial"
-	"database/sql"
 	"fmt"
 	"log"
 )
@@ -15,8 +14,12 @@ func GetURL(base *initial.General, shortURL string) (string, error) {
 	longURL, err := base.Redis.Get(base.Context, shortURL).Result()
 	if err != nil {
 		if err.Error() == "redis: nil" {
-			if err = getFromDB(base, &urls); err == nil {
-				return urls.Long, nil
+			if err = GetFromDB(base, &urls); err != nil {
+				if err.Error() == "sql: no rows in result set" {
+					return urls.Long, fmt.Errorf("record not exist")
+				}
+				log.Printf("dbQuery:Query: %s", err)
+				return "", err
 			}
 		}
 		log.Printf("GetURL:Get: %s", err)
@@ -26,31 +29,11 @@ func GetURL(base *initial.General, shortURL string) (string, error) {
 	return longURL, nil
 }
 
-func getFromDB(base *initial.General, urls *initial.URLs) error {
-	if err := dbQuery(base.MySQL, urls); err != nil {
-		return err
-	}
-	err := general.Cache(base, urls)
-	return err
-}
-
-func dbQuery(db *sql.DB, urls *initial.URLs) error {
-	rows, err := db.Query("SELECT * FROM url WHERE shortURL = ?", &urls.Short)
+func GetFromDB(base *initial.General, urls *initial.URLs) error {
+	err := base.MySQL.QueryRow("SELECT * FROM url WHERE shortURL = ?", urls.Short).Scan(urls.Long)
 	if err != nil {
-		log.Printf("dbQuery:Query: %s", err)
 		return err
 	}
-	defer general.CloseFile(rows)
-
-	for rows.Next() {
-		err = rows.Scan(&urls.Short, &urls.Long)
-		log.Printf("dbQuery:Scan: %s", err)
-		return err
-	}
-
-	if err = rows.Err(); err != nil {
-		log.Printf("dbQuery:Err: %s", err)
-		return err
-	}
-	return fmt.Errorf("record not exist")
+	err = general.Cache(base, urls)
+	return err
 }

@@ -11,10 +11,12 @@ import (
 	"time"
 )
 
+// Closer defines the interface to which all objects with the Close method correspond
 type Closer interface {
 	Close() error
 }
 
+// CloseFile closes the object that satisfies the Closer interface
 func CloseFile(c Closer) {
 	if err := c.Close; err != nil {
 		log.Panicf("Error closing file")
