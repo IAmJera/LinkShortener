@@ -35,7 +35,7 @@ func isExist(base *initial.General, urls *initial.URLs) (bool, error) {
 		return isExistInDB(base, urls)
 	}
 
-	if isRecurrent(urls, &longURL) {
+	if isRecurrent(urls, longURL) {
 		if err = recurrentCache(base, urls); err != nil {
 			log.Printf("isExist:recurrentCache: %s", err)
 			return false, err
@@ -57,7 +57,7 @@ func isExistInDB(base *initial.General, urls *initial.URLs) (bool, error) { //С
 		return false, err
 	}
 
-	if isRecurrent(urls, &longURL) {
+	if isRecurrent(urls, longURL) {
 		if err = recurrentDB(base, urls); err != nil {
 			return false, err
 		}
@@ -70,8 +70,8 @@ func isExistInDB(base *initial.General, urls *initial.URLs) (bool, error) { //С
 	return true, nil
 }
 
-func isRecurrent(urls *initial.URLs, longURL *string) bool {
-	if *longURL != urls.Long {
+func isRecurrent(urls *initial.URLs, longURL string) bool {
+	if longURL != urls.Long {
 		return true
 	}
 	return false
