@@ -2,10 +2,9 @@
 package main
 
 import (
-	"LinkShortener/general"
-	"LinkShortener/geturl"
-	"LinkShortener/initial"
-	"LinkShortener/puturl"
+	"LinkShortener/app/general"
+	"LinkShortener/app/handlers"
+	"LinkShortener/app/initial"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -53,7 +52,7 @@ func writeRecord(base *initial.General) gin.HandlerFunc {
 			return
 		}
 
-		if err := puturl.WriteToDB(base, &urls); err != nil {
+		if err := handlers.WriteToDB(base, &urls); err != nil {
 			if err.Error() != "record already exist" {
 				c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err})
 				return
@@ -69,7 +68,7 @@ func getRecord(base *initial.General) gin.HandlerFunc {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
 		shortURL := c.Param("short")
 
-		longURL, err := geturl.GetURL(base, shortURL)
+		longURL, err := handlers.GetURL(base, shortURL)
 		if err != nil {
 			if err.Error() == "record not exist" {
 				c.IndentedJSON(http.StatusBadRequest, gin.H{"error": "record not exist"})

@@ -1,8 +1,8 @@
-// Package general contains simple but commonly used functions
+// Package general defines general functions
 package general
 
 import (
-	"LinkShortener/initial"
+	"LinkShortener/app/initial"
 	"crypto/md5"
 	"encoding/hex"
 	"log"
@@ -23,13 +23,13 @@ func CloseFile(c Closer) {
 	}
 }
 
-// Hash concatenates the arguments, creates a md5 hash of them, and returns the first 5 characters
+// Hash hashes a given string with the addition of salt
 func Hash(url string, suf string) string {
 	hash := md5.Sum([]byte(url + suf))
 	return hex.EncodeToString(hash[:4])
 }
 
-// Cache writes long and short urls to the DB
+// Cache caches the short URL and the long URL in Redis
 func Cache(base *initial.General, urls *initial.URLs) error {
 	dur, err := strconv.Atoi(os.Getenv("CACHE_EXPIRATION"))
 	if err != nil {

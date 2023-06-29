@@ -1,4 +1,4 @@
-// Package initial contains the functions that initiate all services and add them to the structure
+// Package initial contains functions that initialize the most commonly used services
 package initial
 
 import (
@@ -12,20 +12,20 @@ import (
 	"time"
 )
 
-// General contains the most commonly used service instances
+// General contains the most commonly used services
 type General struct {
 	Context context.Context
 	MySQL   *sql.DB
 	Redis   *redis.Client
 }
 
-// URLs contain long and short URLs
+// URLs contains short and long urls
 type URLs struct {
 	Short string `json:"shorturl"`
 	Long  string `json:"longurl"`
 }
 
-// InitAll init all services and fill base struct
+// InitAll initializes database and cache
 func InitAll(base *General) error {
 	var err error
 	if base.Context, base.Redis, err = initRedis(); err != nil {

@@ -1,14 +1,14 @@
-// Package geturl contains functions that check if the database contains the value from the argument.
-package geturl
+// Package handlers contains functions that check if the database contains the value from the argument
+package handlers
 
 import (
-	"LinkShortener/general"
-	"LinkShortener/initial"
+	"LinkShortener/app/general"
+	"LinkShortener/app/initial"
 	"fmt"
 	"log"
 )
 
-// GetURL accepts a basic structure and URLs. Returns a longURL value taken from DB/Cache
+// GetURL gets a long URL from a short URL
 func GetURL(base *initial.General, shortURL string) (string, error) {
 	urls := initial.URLs{Short: shortURL}
 	longURL, err := base.Redis.Get(base.Context, shortURL).Result()

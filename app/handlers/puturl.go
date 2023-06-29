@@ -1,16 +1,15 @@
-// Package puturl contains functions that write records to the database
-package puturl
+// Package handlers contains functions that check if the database contains the value from the argument
+package handlers
 
 import (
-	"LinkShortener/general"
-	"LinkShortener/geturl"
-	"LinkShortener/initial"
+	"LinkShortener/app/general"
+	"LinkShortener/app/initial"
 	"fmt"
 	"log"
 	"os"
 )
 
-// WriteToDB writes the entry to the database if it doesn't already exist. Otherwise, return nil
+// WriteToDB accepts a basic structure and URLs. Writes a record to DB/Cache
 func WriteToDB(base *initial.General, urls *initial.URLs) error {
 	exist, err := isExist(base, urls)
 	if err != nil {
@@ -47,9 +46,9 @@ func isExist(base *initial.General, urls *initial.URLs) (bool, error) {
 	return true, nil
 }
 
-func isExistInDB(base *initial.General, urls *initial.URLs) (bool, error) { //Сомнительно
+func isExistInDB(base *initial.General, urls *initial.URLs) (bool, error) {
 	longURL := urls.Long
-	err := geturl.GetFromDB(base, urls)
+	err := GetFromDB(base, urls)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" { //"not exist" {
 			return false, nil
